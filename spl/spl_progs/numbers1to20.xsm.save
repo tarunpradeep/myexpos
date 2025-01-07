@@ -1,0 +1,18 @@
+START:
+    MOV R0, 1         ; Initialize counter (R0 = 1)
+    MOV R1, 20        ; Set upper limit (R1 = 20)
+
+PRINT_LOOP:
+    PORT P1, R0       ; Output current value of R0 to port P1
+    OUT               ; Trigger output
+
+    INC R0            ; Increment counter (R0 = R0 + 1)
+    CMP R0, R1        ; Compare R0 with the upper limit (R1)
+    JLE PRINT_LOOP    ; If R0 <= R1, jump back to PRINT_LOOP
+
+HALT                  ; Stop executionMOV R0, "1 2 3 4 5 6 7 8 9 10 11 12 13 14 15 16 17 18 19 20"
+MOV R16, R0
+PORT P1, R16
+OUT
+HALT
+

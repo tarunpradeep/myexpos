@@ -1,0 +1,8 @@
+alias counter R0;
+alias copy R1;
+counter = 0;
+while(counter <= 20) do
+  copy = counter*counter;
+  print copy;
+  counter = counter + 1;
+endwhile;
