@@ -1,6 +1,8 @@
 [PROCESS_TABLE+11] = 80;
 [PROCESS_TABLE+1] = 0;
 [SYSTEM_STATUS_TABLE + 1] = 0;
+loadi(16,29);
+loadi(17,30);
 loadi(4, 17);
 loadi(5, 18);
 loadi(63, 13);
