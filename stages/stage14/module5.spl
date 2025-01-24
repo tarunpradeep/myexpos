@@ -48,5 +48,4 @@ endif;
 
 //Restore the BP of the new process from the top of it's kernel stack.
 multipop (BP);
-
 return;
