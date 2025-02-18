@@ -1,9 +1,10 @@
+//console interrupt is entered while some other process is executing in user mode, so the handler must switch to the kernel stack of that process
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13] = SP;
 SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1] + 11]*512 - 1;
 backup;
 alias reqID R5;
 reqID = [TERMINAL_STATUS_TABLE + 1];
-[PROCESS_TABLE + reqID*16 + 8] = P0;
+[PROCESS_TABLE + reqID*16 + 8] = P0; //copying the value present in P0 into input buffer field of the process using the terminal
 multipush(R1, R2, R3, R4, R5);
 R1 = 9;
 R2 = reqID;

@@ -1,0 +1,14 @@
+load --library $HOME/myexpos/expl/library.lib
+load --idle $HOME/myexpos/expl/samples/idle_12.xsm
+load --init $HOME/myexpos/stages/stage16/bubblesort.xsm
+load --int=10 $HOME/myexpos/stages/stage14/int10_14.xsm
+load --int=7 $HOME/myexpos/stages/stage15/int7_st15.xsm
+load --exhandler $HOME/myexpos/spl/spl_progs/haltprog.xsm
+load --os $HOME/myexpos/stages/stage14/os_startup14.xsm
+load --int=timer $HOME/myexpos/stages/stage14/timer_14.xsm
+load --module 7 $HOME/myexpos/stages/stage16/bootmodule16.xsm
+load --module 5 $HOME/myexpos/stages/stage14/module5.xsm
+load --module 4 $HOME/myexpos/stages/stage15/module4.xsm
+load --module 0 $HOME/myexpos/stages/stage15/module0.xsm
+load --int=6 $HOME/myexpos/stages/stage16/int6_st16.xsm
+load --int=console $HOME/myexpos/stages/stage16/console_interrupt_s16.xsm

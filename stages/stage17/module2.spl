@@ -1,0 +1,42 @@
+print "mod2";
+alias fnno R1;
+//get free page
+if (fnno == 1) then
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
+    while ([SYSTEM_STATUS_TABLE + 2] == 0) do //checking if there are any free pages
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = WAIT_MEM;
+        multipush(R1);
+        call MOD_5;
+        multipop(R1);
+    endwhile;
+    [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] - 1; //wait mem free count
+    [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] - 1; //mem free count
+
+    //finding a free page
+    R2 = 0;
+    while ([MEMORY_FREE_LIST + R2] != 0) do
+        R2 = R2 + 1;
+    endwhile;
+    [MEMORY_FREE_LIST + R2] = 1;
+    R0 = R2; //page no of free page
+    return;
+endif;
+
+//release page
+if (fnno == 2) then
+    alias pagenum R2;
+    [57*512 + pagenum] = [57*512 + pagenum] - 1;
+    if ([57*512 + pagenum] == 0) then
+        [SYSTEM_STATUS_TABLE + 2] = [SYSTEM_STATUS_TABLE + 2] + 1;
+    endif;
+    R3 = 1;
+    while(R3 < 16) do
+        if ([PROCESS_TABLE + R3*16 + 4] == WAIT_MEM) then
+            [PROCESS_TABLE + R3*16 + 4] = READY;
+        endif;
+        R3 = R3 + 1;
+    endwhile;
+    return;
+endif;
+
+        

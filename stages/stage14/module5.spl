@@ -24,9 +24,6 @@ while(newPID != currentPID) do
 	newPID = newPID+1;
 	newPID = newPID%16;
 endwhile;
-if(newPID == currentPID) then
-	newPID = 0;//idle
-endif;
 
 alias new_process_table R3;
 new_process_table = PROCESS_TABLE + newPID*16;

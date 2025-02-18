@@ -1,6 +1,7 @@
 alias functionNum R1;
 alias currentPID R2;
 
+//acquire terminal
 if (functionNum == 8) then
     while([TERMINAL_STATUS_TABLE]==1) do
         [PROCESS_TABLE + currentPID*16 + 4] = WAIT_TERMINAL;
@@ -10,10 +11,10 @@ if (functionNum == 8) then
     endwhile;
     [TERMINAL_STATUS_TABLE] = 1;
     [TERMINAL_STATUS_TABLE+1] = currentPID;
-    breakpoint;
     return;
 endif;
 
+//release terminal
 if (functionNum == 9) then
     if (currentPID != [TERMINAL_STATUS_TABLE+1]) then
         R0 = -1;
@@ -28,7 +29,6 @@ if (functionNum == 9) then
         R3 = R3+1;
     endwhile;
     R0 = 0;
-    breakpoint;
     return;
 endif;
 

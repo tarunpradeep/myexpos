@@ -1,0 +1,17 @@
+int main()
+{
+	decl
+		string prompt;
+		int temp;
+	enddecl
+	begin
+		prompt = "Enter: ";
+		write(prompt);
+		read(prompt);
+		temp = exposcall("Exec", prompt);
+		prompt = "FAILYAH";
+		write(prompt);
+		return 0;
+	end
+}
+		

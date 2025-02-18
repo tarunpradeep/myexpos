@@ -15,8 +15,7 @@ PUSH BP
 MOV BP,SP
 PUSH R0
 PUSH R0
-BRKP
-MOV R0,"Process 1: "
+MOV R0,"Process (init): "
 MOV R2,BP
 MOV R1,2
 ADD R2,R1
