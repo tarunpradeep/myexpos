@@ -1,0 +1,68 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = -1; //process is in exception handler
+
+//switching to kernel stack
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+
+if (SP == PTLR*512 - 1) then
+    print "stack full";
+    R1 = 3;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    call MOD_1; //exit
+    halt;
+endif;
+
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+backup;
+
+breakpoint;
+print EC;
+print "firsterror";
+multipush(EIP);
+if (EC != 0) then
+    multipop(EIP);
+    print "error!";
+    R1 = 3;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    call MOD_1; //exit
+    halt;
+endif;
+
+
+//exception caused by code page
+if (EPN >= 4 && EPN < 8) then
+    multipush(R0, R1, R2, R3);
+    R2 = [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + EPN];
+    R1 = 5;
+    call MOD_2; //get code page
+    [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + (EPN)*2] = R0;
+    [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + (EPN)*2 + 1] = "1100";
+    multipop(R0, R1, R2, R3);
+
+//exception caused by heap page
+else
+    multipush(R0, R1, R2, R3);
+    R1 = 1; 
+    call MOD_2; //get free page
+    [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + 4] = R0;
+    [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + 5] = "1110";
+    R1 = 1;
+    call MOD_2;
+    [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + 6] = R0;
+    [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + 7] = "1110";
+    multipop(R0, R1, R2, R3);
+endif;
+
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+multipop(EIP);
+restore;
+
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
+print SP;
+print "^sp";
+SP = SP + 1;
+[[PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE+1] + 2*(SP/512)]*512 + SP%512] = EIP; //re-execute the exception caused instruction
+ireturn;
+
+
+
+
