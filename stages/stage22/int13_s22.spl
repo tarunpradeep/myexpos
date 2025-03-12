@@ -1,0 +1,89 @@
+alias user_SP R1;
+user_SP = SP;
+//switch to kernel stack
+[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 13] = SP;
+SP = [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 - 1;
+
+//extract syscall no
+alias syscall_num R3;
+syscall_num = [[PTBR + ((user_SP - 5)/512)*2]*512 + ((user_SP - 5)%512)];
+
+//semget
+if(syscall_num == 17) then
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 9] = 17;
+    R4 = 0;
+    while(R4 < 8) do
+            if([[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 + RESOURCE_TABLE_OFFSET + R4*2] == -1) then
+                break;
+            endif;
+            R4 = R4 + 1;
+    endwhile;
+
+    //if no free entry, return -1
+    if(R4 == 8) then
+        [[PTBR + ((user_SP -1)/512)*2]*512 + (user_SP -1)%512] = -1;
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 9] = 0;
+        SP = user_SP;//switch to user stack
+        ireturn;
+    endif;
+
+    [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 + RESOURCE_TABLE_OFFSET + R4*2] = SEMAPHORE;
+
+    //Acquire semaphore 
+    multipush(R1, R2, R3, R4);
+    R1 = ACQUIRE_SEMAPHORE;
+    R2 = [SYSTEM_STATUS_TABLE+1];
+    call MOD_0; //MOD 0
+    multipop(R1, R2, R3, R4);
+
+    //If there are no free semaphores, return -2.
+    if(R0==-1)  then
+        [[PTBR + ((user_SP -1)/512)*2]*512 + (user_SP -1)%512] = -2;
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 9] = 0;
+        SP = user_SP;//switch to user stack
+        ireturn;
+    endif;
+
+    //store index of semaphore in resource table
+    [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 + RESOURCE_TABLE_OFFSET + R4*2 + 1] = R0;
+
+    SP = user_SP;
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 9] = 0; 
+    [[PTBR + ((user_SP -1)/512)*2]*512 + (user_SP -1)%512] = R4;
+    ireturn;
+endif;
+
+//semrelease
+if(syscall_num == INT_SEMRELEASE) then
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 9] = 18;
+    alias sem_desc R4;
+    sem_desc = [[PTBR + ((user_SP - 4)/512)*2]*512 + (user_SP - 4)%512];
+
+    //if sem desc is invalid OR if sem id field in pprt is not a semaphore, return -1
+    if(sem_desc < 0 || sem_desc > 7 || [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 + RESOURCE_TABLE_OFFSET + sem_desc*2] != SEMAPHORE) then
+        [[PTBR + ((user_SP -1)/512)*2]*512 + (user_SP -1)%512] = -1;
+        [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 9] = 0; 
+        SP = user_SP;
+        ireturn;
+    endif;
+
+    //RELEASE_SEMAPHORE
+    multipush(R1,R2,R3,R4);
+    R1 = RELEASE_SEMAPHORE;
+    R2 = [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 + RESOURCE_TABLE_OFFSET + sem_desc*2 + 1];
+    R3 = [SYSTEM_STATUS_TABLE + 1];
+    call MOD_0; 
+    multipop(R1,R2,R3,R4);
+
+    //invalidate per process resource table entry
+    [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 + RESOURCE_TABLE_OFFSET + sem_desc*2] = -1;
+    [[PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 11]*512 + RESOURCE_TABLE_OFFSET + sem_desc*2 + 1] = -1;
+
+    SP = user_SP;
+    [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE +1] * 16) + 9] = 0;   
+    [[PTBR + ((user_SP -1)/512)*2]*512 + (user_SP -1)%512] = 0;
+    ireturn;
+endif;
+ireturn;
+          
+  

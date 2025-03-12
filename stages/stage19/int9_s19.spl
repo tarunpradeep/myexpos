@@ -2,7 +2,6 @@ alias userSP R0;
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 13] = SP;
 userSP = SP;
 SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE+1]*16 + 11]*512 - 1;
-
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 9;
 
 alias file_name R1;
@@ -20,7 +19,7 @@ while(file_index < 60) do
     file_index = file_index + 1;
 endwhile;
 
-if (file_index == 60) then //not found
+if (file_index >= 60) then //not found
     [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
     SP = userSP;
     [[PTBR + 2*(userSP-1)/512] + (userSP-1)%512] = -1;
@@ -30,7 +29,7 @@ endif;
 //calling mod1 for exit process
 multipush(R0, R1, R2);
 R1 = 3;
-R2 = file_index;
+R2 = [SYSTEM_STATUS_TABLE + 1];
 call MOD_1;
 multipop(R0, R1, R2);
 
@@ -96,7 +95,7 @@ multipop(R0, R1, R2, R3, PTBR, PTLR);
 multipush(R0, R1, R2, R3, PTBR, PTLR);
 R1 = 5;
 R2 = [INODE_TABLE + file_index*16 + 8];
-R3 = [SYSTEM_STATUS_TABLE + 1];
+R3 = file_index;
 call MOD_2; //get code page
 [PTBR + 8] = R0;
 [PTBR + 9] = "0100";
@@ -117,5 +116,4 @@ SP = 8*512;
 [[PTBR + 16]*512]=[[PTBR + 8]*512 + 1];
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1] * 16) + 13] = SP;
 [PROCESS_TABLE + ([SYSTEM_STATUS_TABLE + 1]*16) + 9] = 0;
-breakpoint;
 ireturn;

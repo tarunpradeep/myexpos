@@ -1,0 +1,83 @@
+alias syscallnum R1;
+alias user_SP R2;
+
+user_SP = SP;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] =  SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+
+R3 = user_SP - 5;
+syscallnum = [[PTBR + (R3/512)*2]*512 + (R3%512)];
+
+//getpid
+if (syscallnum == 11) then
+    R5 = user_SP - 1;
+    [[PTBR + (R5/512)*2]*512 + (R5%512)] = [SYSTEM_STATUS_TABLE + 1];
+    SP = user_SP;
+    ireturn;
+endif;
+
+//getppid
+if (syscallnum == 12) then
+    R5 = user_SP - 1;
+    [[PTBR + (R5/512)*2]*512 + (R5%512)] = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 2];
+    SP = user_SP;
+    ireturn;
+endif;
+
+//wait system call
+if (syscallnum == 13) then
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 13;
+
+    //extracting wait pid
+    alias wait_pid R4;
+    R5 = user_SP - 4;
+    wait_pid = [[PTBR + (R5/512)*2]*512 + (R5%512)];
+
+    if (wait_pid == [SYSTEM_STATUS_TABLE + 1] || [PROCESS_TABLE + wait_pid*16 + 4] == TERMINATED) then
+        R5 = user_SP - 1;
+        [[PTBR + (R5/512)*2]*512 + (R5%512)] = -1;
+        [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+        SP = user_SP;
+        ireturn;
+    endif;
+
+
+    //if all conditions are satisfied
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 4] = WAIT_PROCESS;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 5] = wait_pid;
+
+    multipush(R0, R1, R2, R3, R4, R5);
+    call MOD_5;
+    multipop(R0, R1, R2, R3, R4, R5);
+
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+    R5 = user_SP - 1;
+    [[PTBR + (R5/512)*2]*512 + (R5%512)] = 0;
+    SP = user_SP;
+    ireturn;
+
+endif;
+
+
+//signal system call
+if (syscallnum == 14) then
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 14;
+    
+    R3 = 0;
+    while(R3 < 16) do
+        if ([PROCESS_TABLE + R3*16 + 4] == WAIT_PROCESS && [PROCESS_TABLE + R3*16 + 5] == [SYSTEM_STATUS_TABLE + 1]) then
+            [PROCESS_TABLE + R3*16 + 4] = READY;
+            [PROCESS_TABLE + R3*16 + 5] = -1;
+        endif;
+        R3 = R3 + 1;
+    endwhile;
+
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+    R5 = user_SP - 1;
+    [[PTBR + (R5/512)*2]*512 + (R5%512)] = 0;
+    SP = user_SP;
+    ireturn;
+endif;
+
+SP = user_SP;
+ireturn;

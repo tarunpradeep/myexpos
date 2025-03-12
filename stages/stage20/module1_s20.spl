@@ -1,0 +1,101 @@
+alias fnno R1;
+alias PID R2;
+
+//get pcb entry
+if (fnno == 1) then
+    R3 = 0;
+    while(R3<16) do
+        if ([PROCESS_TABLE + R3*16 + 4] == TERMINATED) then
+            [PROCESS_TABLE + R3*16 + 1] = R3;
+            [PROCESS_TABLE + R3*16 + 4] = ALLOCATED;
+            [PROCESS_TABLE + R3*16 + 14] = PAGE_TABLE_BASE + 20*R3;
+            [PROCESS_TABLE + R3*16 + 15] = 10;
+            R0 = R3;
+            return;
+        endif;
+        R3 = R3 + 1;
+    endwhile;
+    R0 = -1;
+    return;
+endif;
+
+//free user area page
+if (fnno == 2) then
+    multipush(R1, R2);
+    R3 = [PROCESS_TABLE + PID*16 + 11];
+    R1 = 2;
+    R2 = R3;
+    call MOD_2;
+    multipop(R1, R2);
+    return;
+endif;
+
+//exit_process
+if (fnno == 3) then
+    multipush(R1, R2);
+    R1 = 4;
+    call MOD_1; //free page table
+    R1 = 2;
+    call MOD_1; //free user area page
+    multipop(R1, R2);
+    [PROCESS_TABLE + PID*16 + 4] = TERMINATED;
+    return;
+endif;
+
+//free page table
+if (fnno == 4) then
+    [PAGE_TABLE_BASE + 20*PID + 0]=-1;
+    [PAGE_TABLE_BASE + 20*PID + 1]="0000";
+    [PAGE_TABLE_BASE + 20*PID + 2]=-1;
+    [PAGE_TABLE_BASE + 20*PID + 3]="0000";
+    R4 = PAGE_TABLE_BASE + 20*PID;
+    R3 = 4;
+    while(R3 < 20) do
+        if ([R4 + R3] != -1) then
+            multipush(R1, R2, R3, R4);
+            R1 = 2;
+            R2 = [R4 + R3];
+            call MOD_2;
+            multipop(R1, R2, R3, R4);
+        endif;
+        [R4 + R3] = -1;
+        [R4 + R3 + 1] = "0000";
+        R3 = R3 + 2;
+    endwhile;
+    return;
+
+    //invalidating heap and stack entries of the disk map table
+    R4 = 2;
+    R5 = PID;
+    while(R4<=3) do 
+
+        //heap
+        if ([DISK_MAP_TABLE + PID*10 + R4] != -1) then
+            multipush(R0, R1, R2, R3, R4, R5);
+            R1 = 4;
+            R3 = R5;
+            R2 = [DISK_MAP_TABLE + R5*10 + R4];
+            call MOD_2;
+            multipop(R0, R1, R2, R3, R4, R5);
+        endif;
+
+        //stack
+        if ([DISK_MAP_TABLE + PID*10 + R4 + 6] != -1) then
+            multipush(R0, R1, R2, R3, R4, R5);
+            R1 = 4;
+            R3 = R5;
+            R2 = [DISK_MAP_TABLE + R5*10 + R4];
+            call MOD_2;
+            multipop(R0, R1, R2, R3, R4, R5);
+        endif;
+        R4 = R4 + 1;
+    endwhile;
+
+    R3 = 0;
+    while (R3 < 10) do 
+        [DISK_MAP_TABLE + PID*10 + R3] = -1;
+        R3 = R3 + 1;
+    endwhile;
+    return;
+endif;
+return;

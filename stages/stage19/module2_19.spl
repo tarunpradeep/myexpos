@@ -1,4 +1,5 @@
 alias fnno R1;
+
 //get free page
 if (fnno == 1) then
     [SYSTEM_STATUS_TABLE + 3] = [SYSTEM_STATUS_TABLE + 3] + 1;
@@ -81,7 +82,6 @@ if (fnno == 5) then
 endif;
 
 return;
-
 
 
 

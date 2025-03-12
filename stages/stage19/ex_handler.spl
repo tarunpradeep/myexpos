@@ -1,5 +1,5 @@
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = -1; //process is in exception handler
-
+breakpoint;
 //switching to kernel stack
 [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
 
@@ -14,9 +14,6 @@ endif;
 SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
 backup;
 
-breakpoint;
-print EC;
-print "firsterror";
 multipush(EIP);
 if (EC != 0) then
     multipop(EIP);
@@ -24,6 +21,7 @@ if (EC != 0) then
     R1 = 3;
     R2 = [SYSTEM_STATUS_TABLE + 1];
     call MOD_1; //exit
+    call MOD_5;
     halt;
 endif;
 
@@ -57,10 +55,9 @@ multipop(EIP);
 restore;
 
 SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13];
-print SP;
-print "^sp";
 SP = SP + 1;
 [[PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE+1] + 2*(SP/512)]*512 + SP%512] = EIP; //re-execute the exception caused instruction
+breakpoint;
 ireturn;
 
 

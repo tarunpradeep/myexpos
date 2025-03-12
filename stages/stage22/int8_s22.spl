@@ -1,0 +1,132 @@
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 8;
+
+alias user_SP R2;
+user_SP = SP;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+
+//get pcb entry and child pid 
+multipush(R1, R2, R3);
+R1 = 1;
+call MOD_1;
+multipop(R1, R2, R3);
+alias child_PID R3;
+child_PID = R0;
+
+if (child_PID == -1) then
+    [[PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE + 1] + ((user_SP-1)/512)*2]*512 + (user_SP-1)%512] = -1;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+    SP = user_SP;
+    ireturn;
+endif;
+
+//setting up parent's heap if not allocated
+if ([PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + 4] == -1) then
+    multipush(R0, R1, R2, R3);
+    R1 = 1;
+    call MOD_2;
+    [PTBR + 4] = R0;
+    [PTBR + 5] = "1110";
+
+    R1 = 1;
+    call MOD_2;
+    [PTBR + 6] = R0;
+    [PTBR + 7] = "1110";
+    multipop(R0, R1, R2, R3);
+endif;
+
+//setting up child's stack and user page
+multipush(R0, R1, R2, R3);
+R1 = 1;
+call MOD_2;
+alias child_PTBR R10;
+child_PTBR = PAGE_TABLE_BASE + child_PID*20;
+[child_PTBR + 16] = R0;
+[child_PTBR + 17] = [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE+1]*20 + 17];
+
+R1 = 1;
+call MOD_2;
+[child_PTBR + 18] = R0;
+[child_PTBR + 19] = [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE+1]*20 + 19];
+
+R1 = 1;
+call MOD_2;
+alias child_pt R8;
+child_pt = PROCESS_TABLE + child_PID*16; //child process table
+[child_pt + 11] = R0;
+multipop(R0, R1, R2, R3);
+
+alias parent_pt R11;
+parent_pt = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16; //current process table
+
+[child_pt + 0] = 0;
+[child_pt + 2] = [SYSTEM_STATUS_TABLE + 1];
+[child_pt + 3] = [parent_pt + 3];
+[child_pt + 4] = CREATED;
+[child_pt + 6] = [parent_pt + 6];
+[child_pt + 7] = [parent_pt + 7];
+[child_pt + 9] = 0;
+[child_pt + 10] = [parent_pt + 10];
+[child_pt + 12] = 0;
+[child_pt + 13] = [parent_pt + 13];
+
+
+//copying per process table
+R5 = [child_pt + 11]*512 + 496;
+R6 = [parent_pt + 11]*512 + 496;
+R7 = [parent_pt + 11]*512 + 512;
+while(R6 < R7) do
+    [R5] = [R6];
+    [R5+1] = [R6+1];
+    if([R5]==1) then
+        [SEMAPHORE_TABLE + [R5+1]*4 + 1] = [SEMAPHORE_TABLE + [R5+1]*4 + 1] +1;
+    endif;
+    R6 = R6+2;
+    R5 = R5+2;
+endwhile;
+
+//copying per-process disk map table
+R12 = 0;
+while(R12<10) do
+    [DISK_MAP_TABLE + child_PID*10 + R12] =  [DISK_MAP_TABLE + [SYSTEM_STATUS_TABLE + 1]*10 + R12];
+    R12 = R12 + 1;
+endwhile;
+
+//copying page table
+R12 = 0;
+while(R12<16) do
+    [child_PTBR + R12] = [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + R12];
+    if (R12%2 == 0) then
+        [MEMORY_FREE_LIST + [child_PTBR + R12]] = [MEMORY_FREE_LIST + [child_PTBR + R12]] + 1;
+    endif;
+    R12 = R12 + 1;
+endwhile;
+
+//copy user stack
+R12 = 0;
+alias child_stack R4;
+alias parent_stack R5;
+child_stack = [child_PTBR + 16];
+parent_stack = [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + 16];
+while(R12 < 512) do
+    [child_stack*512 + R12] = [parent_stack*512 + R12];
+    R12 = R12 + 1;
+endwhile;
+
+R12 = 0;
+child_stack = [PAGE_TABLE_BASE + child_PID*20 + 18];
+parent_stack = [PAGE_TABLE_BASE + [SYSTEM_STATUS_TABLE + 1]*20 + 18];
+while(R12 < 512) do
+    [child_stack*512 + R12] = [parent_stack*512 + R12];
+    R12 = R12 + 1;
+endwhile;
+
+[[child_pt + 11]*512] = BP;
+[[PTBR + ((user_SP-1)/512)*2]*512 + ((user_SP-1)%512)] = child_PID;
+[[child_PTBR + ((user_SP-1)/512)*2]*512 + ((user_SP-1)%512)] = 0;
+
+[parent_pt+ 9] = 0;
+
+SP = [parent_pt + 13];
+
+ireturn;

@@ -1,0 +1,27 @@
+fdisk
+load --library $HOME/myexpos/expl/library.lib
+load --idle $HOME/myexpos/expl/samples/idle_12.xsm
+load --init $HOME/myexpos/stages/stage21/shellcode_s21.xsm
+load --int=10 $HOME/myexpos/stages/stage20/int10_s20.xsm
+load --int=7 $HOME/myexpos/stages/stage15/int7_st15.xsm
+load --int=15 $HOME/myexpos/stages/stage21/int15_s21.xsm
+load --int=11 $HOME/myexpos/stages/stage21/int11_s21.xsm
+load --exhandler $HOME/myexpos/stages/stage19/ex_handler.xsm
+load --os $HOME/myexpos/stages/stage14/os_startup14.xsm
+load --int=timer $HOME/myexpos/stages/stage14/timer_14.xsm
+load --module 7 $HOME/myexpos/stages/stage21/bootmodule21.xsm
+load --module 5 $HOME/myexpos/stages/stage20/module5_s20.xsm
+load --module 4 $HOME/myexpos/stages/stage19/module4_19.xsm
+load --module 0 $HOME/myexpos/stages/stage15/module0.xsm
+load --module 2 $HOME/myexpos/stages/stage19/module2_19.xsm
+load --module 1 $HOME/myexpos/stages/stage21/module1_s21.xsm
+load --int=9 $HOME/myexpos/stages/stage19/int9_s19.xsm
+load --int=6 $HOME/myexpos/stages/stage16/int6_st16.xsm
+load --int=8 $HOME/myexpos/stages/stage20/int8_s20.xsm
+load --int=console $HOME/myexpos/stages/stage16/console_interrupt_s16.xsm
+load --int=disk $HOME/myexpos/stages/stage18/int2_s18.xsm
+load --exec $HOME/myexpos/stages/stage20/fork1.xsm
+load --exec $HOME/myexpos/stages/stage14/even.xsm
+load --exec $HOME/myexpos/stages/stage20/odd1.xsm
+load --exec $HOME/myexpos/stages/stage21/pid.xsm
+load --exec $HOME/myexpos/stages/stage21/fork3.xsm
