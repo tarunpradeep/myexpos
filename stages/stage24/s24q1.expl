@@ -1,0 +1,28 @@
+int main()
+{
+    decl
+        str name, content;
+        int temp, x, filedesc;
+    enddecl
+
+    begin
+        temp = exposcall("Write", -2, "(File):");
+        temp = exposcall("Read", -1, name);
+        filedesc = exposcall("Open", name);
+        if (filedesc < 0) then
+            temp = exposcall("Write", -2, "No File Found");
+        else
+            x = 0;
+            while (x != -2) do
+                x = exposcall("Read", filedesc, content);
+                if (x == -2) then
+                    break;
+                endif;
+                temp = exposcall("Write", -2, content);
+            endwhile;
+
+            temp = exposcall("Close", filedesc);
+        endif;
+        return 0;
+    end
+}

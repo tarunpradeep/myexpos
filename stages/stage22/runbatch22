@@ -31,3 +31,5 @@ load --exec $HOME/myexpos/stages/stage22/q1_s22.xsm
 load --exec $HOME/myexpos/stages/stage22/child.xsm
 load --exec $HOME/myexpos/stages/stage22/parent.xsm
 load --exec $HOME/myexpos/stages/stage22/msort.xsm
+load --exec $HOME/myexpos/stages/stage19/q1_s19.xsm
+load --exec $HOME/myexpos/stages/stage20/fork2.xsm

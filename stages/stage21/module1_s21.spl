@@ -39,7 +39,7 @@ if (fnno == 3) then
                 [PROCESS_TABLE + R3*16 + 4] = READY;
                 [PROCESS_TABLE + R3*16 + 5] = -1;
             endif;
-            
+            //checking ppid
             if ([PROCESS_TABLE + R3*16 + 2] == PID) then
                 [PROCESS_TABLE + R3*16 + 2] = -1;
             endif;

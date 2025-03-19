@@ -13,6 +13,8 @@ multipop(R1, R2, R3);
 alias child_PID R3;
 child_PID = R0;
 
+print child_PID;
+
 if (child_PID == -1) then
     [[PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE + 1] + ((user_SP-1)/512)*2]*512 + (user_SP-1)%512] = -1;
     [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;

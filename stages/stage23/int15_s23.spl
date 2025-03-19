@@ -1,0 +1,67 @@
+print "here";
+alias user_SP R1;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 21;
+
+//switching to kernel stack
+user_SP = SP;
+[PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 13] = SP;
+SP = [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 11]*512 - 1;
+
+print"here1";
+
+if ([SYSTEM_STATUS_TABLE + 1] != 1 || [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 3] != 1) then
+    [[PAGE_TABLE_BASE + 20*[SYSTEM_STATUS_TABLE + 1] + ((user_SP - 1)/512)*2] + ((user_SP - 1)%512)] = -1;
+    SP = user_SP;
+    [PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16 + 9] = 0;
+    ireturn;
+endif;
+
+print "here2";
+
+//disk store
+//inode table
+multipush(R1, R2);
+R1 = 1;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 59;
+R4 = 3;
+call MOD_4;
+multipop(R1, R2);
+
+//root file
+multipush(R1, R2);
+R1 = 1;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 62;
+R4 = 5;
+call MOD_4;
+multipop(R1, R2);
+
+//disk free list
+multipush(R1, R2);
+R1 = 1;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 61;
+R4 = 2;
+call MOD_4;
+multipop(R1, R2);
+
+//user table
+multipush(R1, R2);
+R1 = 1;
+R2 = [SYSTEM_STATUS_TABLE + 1];
+R3 = 60;
+R4 = 4;
+call MOD_4;
+multipop(R1, R2);
+
+halt;
+
+
+
+
+
+
+
+
+

@@ -10,6 +10,7 @@ PTBR=[PROCESS_TABLE + ( [SYSTEM_STATUS_TABLE + 1] * 16) + 14];
 
 alias file_index R2;
 file_index = 0;
+
 while(file_index < 60) do
     if([59*512 + file_index*16 + 1] == file_name) then
         if ([59*512 + file_index*16] == 3) then   //checking whether the file is an XEXE file
@@ -25,6 +26,7 @@ if (file_index >= 60) then //not found
     [[PTBR + 2*(userSP-1)/512] + (userSP-1)%512] = -1;
     ireturn;
 endif;
+
 
 //calling mod1 for exit process
 multipush(R0, R1, R2);

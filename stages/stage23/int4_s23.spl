@@ -1,0 +1,209 @@
+alias syscall_num R1;
+
+alias ptcurrentproc R9;
+ptcurrentproc = PROCESS_TABLE + [SYSTEM_STATUS_TABLE + 1]*16;
+
+//extracting system call number
+alias user_SP R2;
+user_SP = SP;
+
+[ptcurrentproc + 13] = SP;
+SP = [ptcurrentproc + 11]*512 - 1;
+R7 = user_SP - 5;
+
+syscall_num = [[PTBR + (R7/512)*2]*512 + (R7%512)];
+
+alias returnval R6;
+returnval = [PTBR + ((user_SP - 1)/512)*2]*512 + ((user_SP - 1)%512);
+
+//extracting file name
+alias file_name R4;
+file_name = [[PTBR + ((user_SP - 4)/512)*2]*512 + ((user_SP - 4)%512)];
+
+//create
+if (syscall_num == 1) then
+    alias inode_index R3;
+    [ptcurrentproc + 9] = 1;
+     
+    inode_index = 0;
+    while(inode_index < 60) do
+        if (file_name == [INODE_TABLE + inode_index*16 + 1]) then
+            [returnval] = 0;
+            SP = user_SP;
+            [ptcurrentproc + 9] = 0;
+            ireturn;
+        endif;
+        inode_index = inode_index + 1;
+    endwhile;
+
+    inode_index = 0;
+    while(inode_index < 60) do
+        if ([INODE_TABLE + inode_index*16 + 1] == -1) then
+            break;
+        endif;
+        inode_index =  inode_index + 1;
+    endwhile;
+
+    //no free inode entry
+    if (inode_index == 60) then
+        [returnval] = -1;
+        SP = user_SP;
+        [ptcurrentproc + 9] = 0;
+        ireturn;
+    endif;
+
+    //permission
+    R5 = [[PTBR + ((user_SP - 3)/512)*2]*512 + ((user_SP - 3)%512)];
+
+    //setting the inode table for the file
+    alias inode_table R10;
+    inode_table = INODE_TABLE + inode_index*16;
+    [inode_table] = DATA;
+    [inode_table + 1] = file_name;
+    [inode_table + 2] = 0;
+    [inode_table + 3] = [ptcurrentproc + 3];
+    [inode_table + 4] = R5;
+    [inode_table + 8] = -1;
+    [inode_table + 9] = -1;
+    [inode_table + 10] = -1;
+    [inode_table + 11] = -1;
+
+    //setting the root file for the file
+    alias root_file R11;
+    R11 = ROOT_FILE + R3*8;
+    [root_file] = file_name;
+    [root_file + 1] = 0;
+    [root_file + 2] = DATA;
+    [root_file + 3] = [USER_TABLE + 2*[ptcurrentproc + 3]];
+    [root_file + 4] = R5;
+
+    [ptcurrentproc + 9] = 0;
+    [returnval] = 0;
+    SP = user_SP;
+    ireturn;
+endif;
+
+//delete
+if (syscall_num == 4) then
+    [ptcurrentproc + 9] = 4;
+
+    alias inode_index R3;
+    inode_index = 0;
+    while(inode_index < 60) do
+        if (file_name == [INODE_TABLE + inode_index*16 + 1]) then
+            break;
+        endif;
+        inode_index = inode_index + 1;
+    endwhile;
+
+    //file not found
+    if (inode_index == 60) then
+        [returnval] = 0;
+        SP = user_SP;
+        [ptcurrentproc + 9] = 0;
+        ireturn;
+    endif;
+
+    alias inode_table R10;
+    inode_table = INODE_TABLE + inode_index*16;
+
+    //file is not DATA
+    if ([inode_table] != DATA) then
+        [returnval] = -1;
+        SP = user_SP;
+        [ptcurrentproc + 9] = 0;
+        ireturn;
+    endif;
+
+    if ([INODE_TABLE + inode_index*16 + 4] == 0) then
+        if ([SYSTEM_STATUS_TABLE + 1 ] != ROOT && [SYSTEM_STATUS_TABLE + 1] != [inode_table + 3]) then
+            [returnval] = -1;
+            SP = user_SP;
+            [ptcurrentproc + 9] = 0;
+            ireturn;
+        endif;
+    endif;
+
+    //acquire inode
+    multipush(R1, R2, R3, R4, R5, R6, R7, R9, R10);
+    R1 = 4;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = inode_index;
+    call MOD_0;
+    multipop(R1, R2, R3, R4, R5, R6, R7, R9, R10);
+
+    if ([FILE_STATUS_TABLE + inode_index*16 + 1] != -1) then
+        //release the lock
+        multipush(R1, R2, R3, R4, R5, R6, R7, R9, R10);
+        R1 = 5;
+        R2 = [SYSTEM_STATUS_TABLE + 1];
+        R3 = inode_index;
+        call MOD_0;
+        multipop(R1, R2, R3, R4, R5, R6, R7, R9, R10);
+        [returnval] = -2;
+        SP = user_SP;
+        [ptcurrentproc + 9] = 0;
+        ireturn;
+    endif;
+
+    R5 = 0;
+    alias disknum R8;
+    alias buffernum R12;
+    while (R5 < 4) do
+        disknum = [inode_table + 8 + R5];
+        buffernum = (disknum%4);
+        if (disknum != -1) then
+            if ([BUFFER_TABLE + buffernum*4] == R8 && [BUFFER_TABLE + buffernum*4 + 1] == 1) then
+                [BUFFER_TABLE + buffernum*4 + 1] = 0;
+            endif;
+
+            //release block
+            multipush(R1, R2, R3, R4, R5, R7, R6, R8, R9, R12, R10);
+            R1 = 4;
+            R2 = [SYSTEM_STATUS_TABLE + 1];
+            R3 = [BUFFER_TABLE + buffernum*4];
+            call MOD_0;
+            multipop(R1, R2, R3, R4, R5, R7, R6, R8, R9, R12, R10);
+        endif;
+        R5 = R5 + 1;
+    endwhile;
+    
+    [inode_table + 1] = -1;
+    [ROOT_FILE + inode_index*16] = 0;
+
+    //release lock
+    multipush(R1, R2, R3, R4, R10, R12);
+    R1 = 5;
+    R2 = [SYSTEM_STATUS_TABLE + 1];
+    R3 = R3;
+    multipop(R1, R2, R3, R4, R10, R12);
+    
+    [ptcurrentproc + 9] = 0;
+    [returnval] = 0;
+    SP = user_SP;
+    ireturn;
+endif;
+
+
+
+
+
+
+
+
+
+
+
+    
+
+
+    
+
+
+
+
+
+
+
+    
+
